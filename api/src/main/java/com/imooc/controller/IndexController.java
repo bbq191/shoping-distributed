@@ -54,7 +54,7 @@ public class IndexController {
   }
 
   @ApiOperation(value = "获取一级商品分类", notes = "获取一级商品分类", httpMethod = "GET")
-  @GetMapping("/category")
+  @GetMapping("/cats")
   public IMOOCJSONResult category() {
     List<Category> list = new ArrayList<>();
     String categoryStr = redisOperator.get("category");
@@ -108,7 +108,7 @@ public class IndexController {
     if (rootCatId == null) {
       return IMOOCJSONResult.errorMsg("列表不存在");
     }
-    List<NewItemsVo> list = categoryService.getSixNewItemLazy(rootCatId);
+    List<NewItemsVo> list = categoryService.getSixNewItemsLazy(rootCatId);
     return IMOOCJSONResult.ok(list);
   }
 }

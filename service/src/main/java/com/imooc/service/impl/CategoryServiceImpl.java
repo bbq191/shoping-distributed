@@ -40,9 +40,9 @@ public class CategoryServiceImpl implements CategoryService {
 
   @Transactional(propagation = Propagation.SUPPORTS, rollbackFor = Exception.class)
   @Override
-  public List<NewItemsVo> getSixNewItemLazy(Integer rootCatId) {
-    Map<String, Object> map = new HashMap<>(6);
+  public List<NewItemsVo> getSixNewItemsLazy(Integer rootCatId) {
+    Map<String, Object> map = new HashMap<>(20);
     map.put("rootCatId", rootCatId);
-    return categoryMapperCustom.getSixNewItemLazy(map);
+    return categoryMapperCustom.getSixNewItemsLazy(map);
   }
 }

@@ -42,23 +42,21 @@
       <result column="itemUrl" property="itemUrl" jdbcType="VARCHAR"/>
     </collection>
   </resultMap>
-  <select id="getSixNewItemLazy" resultMap="myNewItemsVo" parameterType="Map">
+  <select id="getSixNewItemsLazy" resultMap="myNewItemsVo" parameterType="Map">
     SELECT f.id           as rootCatId,
            f.`name`       AS rootCatName,
            f.slogan       AS slogan,
-           f.cat_image    AS
-                             catImage,
+           f.cat_image    AS catImage,
            f.bg_color     AS bgColor,
            i.id           AS itemId,
            i.item_name    AS itemName,
-           ii.url         as
-                             itemUrl,
+           ii.url         as itemUrl,
            i.created_time as createdTime
     FROM category f
            LEFT JOIN items i ON f.id = i.root_cat_id
            LEFT JOIN items_img ii ON i.id = ii.item_id
     WHERE f.`type` = 1
-      AND i.root_cat_id = #{paramMap.rootCatId}
+      AND i.root_cat_id = #{paramsMap.rootCatId}
       AND ii.is_main = 1
     ORDER BY i.created_time DESC
     LIMIT 0,6;

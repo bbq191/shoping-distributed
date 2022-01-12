@@ -3,6 +3,7 @@ package com.imooc.controller;
 import com.imooc.pojo.Users;
 import com.imooc.pojo.bo.ShopCartBo;
 import com.imooc.pojo.bo.UserBO;
+import com.imooc.pojo.vo.UsersVo;
 import com.imooc.service.UserService;
 import com.imooc.utils.CookieUtils;
 import com.imooc.utils.IMOOCJSONResult;
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PassportController extends BaseController {
   @Autowired private UserService userService;
   @Autowired private RedisOperator redisOperator;
+  private final int PASSWORD_MIN_LENGTH = 6;
 
   @ApiOperation(value = "用户名是否存在", notes = "用户名是否存在", httpMethod = "GET")
   @GetMapping("/usernameIsExist")
@@ -67,16 +69,17 @@ public class PassportController extends BaseController {
     if (isExist) {
       return IMOOCJSONResult.errorMsg("用户名已存在");
     }
-    if (password.length() < 6) {
+    if (password.length() < PASSWORD_MIN_LENGTH) {
       return IMOOCJSONResult.errorMsg("密码不能小于 6 位");
     }
     if (!password.equals(confirmPwd)) {
       return IMOOCJSONResult.errorMsg("两次密码必须一致");
     }
     Users userResult = userService.createUser(userBO);
-    setNullPropertirs(userResult);
+    // 生成用户 token，存入 redis
+    UsersVo usersVo = conventUsersVo(userResult);
     // 设置 cookie 值
-    CookieUtils.setCookie(request, response, "user", JsonUtils.objectToJson(userResult), true);
+    CookieUtils.setCookie(request, response, "user", JsonUtils.objectToJson(usersVo), true);
     // 不重复，返回成功
     return IMOOCJSONResult.ok();
   }
@@ -99,10 +102,10 @@ public class PassportController extends BaseController {
     if (userResult == null) {
       return IMOOCJSONResult.errorMsg("用户名密码不正确");
     }
-    setNullPropertirs(userResult);
+    // 生成用户 token，存入 redis
+    UsersVo usersVo = conventUsersVo(userResult);
     // 设置 cookie 值
-    CookieUtils.setCookie(request, response, "user", JsonUtils.objectToJson(userResult), true);
-    // TODO: 1/5/22 生成用户 token，存入 redis
+    CookieUtils.setCookie(request, response, "user", JsonUtils.objectToJson(usersVo), true);
     // 同步购物车数据
     synchShopcartData(userResult.getId(), request, response);
     return IMOOCJSONResult.ok(userResult);
@@ -115,7 +118,8 @@ public class PassportController extends BaseController {
     // 清楚用户 cookie
     CookieUtils.deleteCookie(request, response, "user");
     CookieUtils.deleteCookie(request, response, FOODIE_SHOPCART);
-    // todo 分布式会话中需要清除用户数据
+    // 分布式会话中需要清除用户数据
+    redisOperator.del(REDIS_USER_TOKEN + ":" + userId);
     return IMOOCJSONResult.ok();
   }
 
@@ -190,19 +194,5 @@ public class PassportController extends BaseController {
         CookieUtils.setCookie(request, response, FOODIE_SHOPCART, shopcartJsonRedis, true);
       }
     }
-  }
-
-  /**
-   * 过滤敏感信息
-   *
-   * @param userResult 用户结果集
-   */
-  private void setNullPropertirs(Users userResult) {
-    userResult.setPassword(null);
-    userResult.setMobile(null);
-    userResult.setEmail(null);
-    userResult.setBirthday(null);
-    userResult.setUpdatedTime(null);
-    userResult.setCreatedTime(null);
   }
 }

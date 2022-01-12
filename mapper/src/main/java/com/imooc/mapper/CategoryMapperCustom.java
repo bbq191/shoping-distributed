@@ -23,5 +23,5 @@ public interface CategoryMapperCustom {
    * @param map 品名map
    * @return 商品list
    */
-  List<NewItemsVo> getSixNewItemLazy(@Param("paramMap") Map<String, Object> map);
+  List<NewItemsVo> getSixNewItemsLazy(@Param("paramsMap") Map<String, Object> map);
 }

@@ -117,9 +117,9 @@ public class PassportController extends BaseController {
       @RequestParam String userId, HttpServletRequest request, HttpServletResponse response) {
     // 清楚用户 cookie
     CookieUtils.deleteCookie(request, response, "user");
-    CookieUtils.deleteCookie(request, response, FOODIE_SHOPCART);
     // 分布式会话中需要清除用户数据
     redisOperator.del(REDIS_USER_TOKEN + ":" + userId);
+    CookieUtils.deleteCookie(request, response, FOODIE_SHOPCART);
     return IMOOCJSONResult.ok();
   }
 

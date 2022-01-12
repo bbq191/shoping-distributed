@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.imooc.mapper.CategoryMapperCustom">
+  <resultMap id="myCategoryVO" type="com.imooc.pojo.vo.CategoryVo">
+    <id column="id" property="id" jdbcType="INTEGER"/>
+    <result column="name" property="name" jdbcType="VARCHAR"/>
+    <result column="type" property="type" jdbcType="VARCHAR"/>
+    <result column="fatherId" property="fatherId" jdbcType="INTEGER"/>
+    <!-- collection 用于定义关联的 list 集合
+     property 用于定义三级分类的 list 属性名
+     oftype 定义集合类型的分类 vo-->
+    <collection property="subCatList" ofType="com.imooc.pojo.vo.SubCategoryVo">
+      <id column="subId" property="subId" jdbcType="INTEGER"/>
+      <result column="subName" property="subName" jdbcType="VARCHAR"/>
+      <result column="subType" property="subType" jdbcType="VARCHAR"/>
+      <result column="subFatherId" property="subFatherId" jdbcType="INTEGER"/>
+    </collection>
+  </resultMap>
+  <select id="getSubCatList" resultMap="myCategoryVO" parameterType="int">
+    SELECT f.id        AS id,
+           f.`name`    AS `name`,
+           f.`type`    AS `type`,
+           f.father_id AS fatherId,
+           c.id        AS subId,
+           c.`name`    AS subName,
+           c.`type`    AS subType,
+           c.father_id AS subFatherId
+    FROM `shopping-dev`.`category` f
+           LEFT JOIN `shopping-dev`.`category` c ON f.id = c.father_id
+    WHERE f.father_id = #{rootCatId};
+  </select>
+  <resultMap id="myNewItemsVo" type="com.imooc.pojo.vo.NewItemsVo">
+    <id column="rootCatId" property="rootCatId" jdbcType="INTEGER"/>
+    <result column="rootCatName" property="rootCatName" jdbcType="VARCHAR"/>
+    <result column="slogan" property="slogan" jdbcType="VARCHAR"/>
+    <result column="catImage" property="catImage" jdbcType="VARCHAR"/>
+    <result column="bgColor" property="bgColor" jdbcType="VARCHAR"/>
+    <collection property="simpleItemVoList" ofType="com.imooc.pojo.vo.SimpleItemVo">
+      <id column="itemId" property="itemId" jdbcType="VARCHAR"/>
+      <result column="itemName" property="itemName" jdbcType="VARCHAR"/>
+      <result column="itemUrl" property="itemUrl" jdbcType="VARCHAR"/>
+    </collection>
+  </resultMap>
+  <select id="getSixNewItemLazy" resultMap="myNewItemsVo" parameterType="Map">
+    SELECT f.id           as rootCatId,
+           f.`name`       AS rootCatName,
+           f.slogan       AS slogan,
+           f.cat_image    AS
+                             catImage,
+           f.bg_color     AS bgColor,
+           i.id           AS itemId,
+           i.item_name    AS itemName,
+           ii.url         as
+                             itemUrl,
+           i.created_time as createdTime
+    FROM category f
+           LEFT JOIN items i ON f.id = i.root_cat_id
+           LEFT JOIN items_img ii ON i.id = ii.item_id
+    WHERE f.`type` = 1
+      AND i.root_cat_id = #{paramMap.rootCatId}
+      AND ii.is_main = 1
+    ORDER BY i.created_time DESC
+    LIMIT 0,6;
+  </select>
+</mapper>

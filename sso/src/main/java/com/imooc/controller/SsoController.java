@@ -117,6 +117,20 @@ public class SsoController {
     return "redirect:" + returnUrl + "?tmpTicket=" + tmpTicket;
   }
 
+  @PostMapping("/logout")
+  @ResponseBody
+  public IMOOCJSONResult logout(
+      String userId, HttpServletRequest request, HttpServletResponse response) throws Exception {
+    // 0. 获取CAS中的用户门票
+    String userTicket = getCookie(request);
+    // 1. 清除userTicket票据，redis/cookie
+    deleteCookie(response);
+    redisOperator.del(REDIS_USER_TICKET + ":" + userTicket);
+    // 2. 清除用户全局会话（分布式会话）
+    redisOperator.del(REDIS_USER_TOKEN + ":" + userId);
+    return IMOOCJSONResult.ok();
+  }
+
   @PostMapping("/verifyTmpTicket")
   @ResponseBody
   public IMOOCJSONResult verifyTmpTicket(
@@ -176,6 +190,14 @@ public class SsoController {
     Cookie cookie = new Cookie(COOKIE_USER_TICKET, val);
     cookie.setDomain("");
     cookie.setPath("/");
+    response.addCookie(cookie);
+  }
+
+  private void deleteCookie(HttpServletResponse response) {
+    Cookie cookie = new Cookie(COOKIE_USER_TICKET, null);
+    cookie.setDomain("");
+    cookie.setPath("/");
+    cookie.setMaxAge(-1);
     response.addCookie(cookie);
   }
 

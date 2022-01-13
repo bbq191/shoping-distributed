@@ -14,6 +14,7 @@
     <module>mapper</module>
     <module>service</module>
     <module>api</module>
+    <module>sso</module>
   </modules>
 
   <parent>

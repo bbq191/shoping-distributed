@@ -4,27 +4,33 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * @Title: IMOOCJSONResult.java @Package com.imooc.utils @Description: 自定义响应数据结构 本类可提供给
- * H5/ios/安卓/公众号/小程序 使用 前端接受此类数据（json object)后，可自行根据业务去实现相关功能
+ * 自定义响应数据结构 本类可提供给 H5/ios/安卓/公众号/小程序 使用 前端接受此类数据（json object)后，可自行根据业务去实现相关功能
  *
- * <p>200：表示成功 500：表示错误，错误信息在msg字段中 501：bean验证错误，不管多少个错误都以map形式返回 502：拦截器拦截到用户token出错 555：异常抛出信息
- * 556: 用户qq校验异常 @Copyright: Copyright (c) 2020 @Company: www.imooc.com
+ * <p>200：表示成功
+ *
+ * <p>500：表示错误，错误信息在msg字段中
+ *
+ * <p>501：bean验证错误，不管多少个错误都以map形式返回
+ *
+ * <p>502：拦截器拦截到用户token出错
+ *
+ * <p>555：异常抛出信息
+ *
+ * <p>556: 用户qq校验异常
+ *
+ * <p>557：校验用户是否在 cas 登陆
  *
  * @author 慕课网 - 风间影月
  * @version V1.0
  */
 public class IMOOCJSONResult {
-
-  // 定义jackson对象
+  /** 定义jackson对象 */
   private static final ObjectMapper MAPPER = new ObjectMapper();
-
-  // 响应业务状态
+  /** 响应业务状态 */
   private Integer status;
-
-  // 响应消息
+  /** 响应消息 */
   private String msg;
-
-  // 响应中的数据
+  /** 响应中的数据 */
   private Object data;
 
   @JsonIgnore private String ok; // 不使用
@@ -84,6 +90,10 @@ public class IMOOCJSONResult {
     this.status = 200;
     this.msg = "OK";
     this.data = data;
+  }
+
+  public static IMOOCJSONResult errorUserTicket(String msg) {
+    return new IMOOCJSONResult(557, msg, null);
   }
 
   public Boolean isOK() {

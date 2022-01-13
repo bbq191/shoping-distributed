@@ -3,6 +3,7 @@ package com.imooc.controller;
 import com.imooc.pojo.Users;
 import com.imooc.pojo.vo.UsersVo;
 import com.imooc.service.UserService;
+import com.imooc.utils.IMOOCJSONResult;
 import com.imooc.utils.JsonUtils;
 import com.imooc.utils.MD5Utils;
 import com.imooc.utils.RedisOperator;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 /** @author afu */
 @Controller
@@ -66,6 +68,14 @@ public class SsoController {
     model.addAttribute("returnUrl", returnUrl);
     if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
       model.addAttribute("errmsg", "用户名密码不能为空");
+      // 1. 获取userTicket门票，如果cookie中能够获取到，证明用户登录过，此时签发一个一次性的临时票据并且回跳
+      String userTicket = getCookie(request);
+      boolean isVerified = verifyUserTicket(userTicket);
+      if (isVerified) {
+        String tmpTicket = createTmpTicket();
+        return "redirect:" + returnUrl + "?tmpTicket=" + tmpTicket;
+      }
+      // 2. 用户从未登录过，第一次进入则跳转到CAS的统一登录页面
       return "login";
     }
     Users userResult = null;
@@ -104,9 +114,43 @@ public class SsoController {
      *      这样的一个个的小景点其实就是我们这里所对应的一个个的站点。
      *      当我们使用完毕这张临时票据以后，就需要销毁。
      */
-    return "login";
-    //    return "redirect:" + returnUrl + "?tmpTicket=" + tmpTicket;
+    return "redirect:" + returnUrl + "?tmpTicket=" + tmpTicket;
   }
+
+  @PostMapping("/verifyTmpTicket")
+  @ResponseBody
+  public IMOOCJSONResult verifyTmpTicket(
+      String tmpTicket, HttpServletRequest request, HttpServletResponse response) throws Exception {
+    // 使用一次性临时票据来验证用户是否登录，如果登录过，把用户会话信息返回给站点
+    // 使用完毕后，需要销毁临时票据
+    String tmpTicketValue = redisOperator.get(REDIS_TMP_TICKET + ":" + tmpTicket);
+    if (StringUtils.isBlank(tmpTicketValue)) {
+      return IMOOCJSONResult.errorUserTicket("用户票据异常");
+    }
+    // 0. 如果临时票据OK，则需要销毁，并且拿到CAS端cookie中的全局userTicket，以此再获取用户会话
+    if (!tmpTicketValue.equals(MD5Utils.getMD5Str(tmpTicket))) {
+      return IMOOCJSONResult.errorUserTicket("用户票据异常");
+    } else {
+      // 销毁临时票据
+      redisOperator.del(REDIS_TMP_TICKET + ":" + tmpTicket);
+    }
+
+    // 1. 验证并且获取用户的userTicket
+    String userTicket = getCookie(request);
+    String userId = redisOperator.get(REDIS_USER_TICKET + ":" + userTicket);
+    if (StringUtils.isBlank(userId)) {
+      return IMOOCJSONResult.errorUserTicket("用户票据异常");
+    }
+
+    // 2. 验证门票对应的user会话是否存在
+    String userRedis = redisOperator.get(REDIS_USER_TOKEN + ":" + userId);
+    if (StringUtils.isBlank(userRedis)) {
+      return IMOOCJSONResult.errorUserTicket("用户票据异常");
+    }
+    // 验证成功，返回OK，携带用户会话
+    return IMOOCJSONResult.ok(JsonUtils.jsonToPojo(userRedis, UsersVo.class));
+  }
+
   /**
    * 创建临时票据
    *
@@ -133,5 +177,47 @@ public class SsoController {
     cookie.setDomain("");
     cookie.setPath("/");
     response.addCookie(cookie);
+  }
+
+  /**
+   * 获取cooki中永久票据
+   *
+   * @param request 请求
+   * @return cookie票据
+   */
+  private String getCookie(HttpServletRequest request) {
+    Cookie[] cookieList = request.getCookies();
+    if (cookieList == null) {
+      return null;
+    }
+    String cookieValue = null;
+    for (Cookie cookie : cookieList) {
+      if (cookie.getName().equals(COOKIE_USER_TICKET)) {
+        cookieValue = cookie.getValue();
+        break;
+      }
+    }
+    return cookieValue;
+  }
+
+  /**
+   * 校验CAS全局用户门票
+   *
+   * @param userTicket 用户票据
+   * @return 是否成功
+   */
+  private boolean verifyUserTicket(String userTicket) {
+    // 0. 验证CAS门票不能为空
+    if (StringUtils.isBlank(userTicket)) {
+      return false;
+    }
+    // 1. 验证CAS门票是否有效
+    String userId = redisOperator.get(REDIS_USER_TICKET + ":" + userTicket);
+    if (StringUtils.isBlank(userId)) {
+      return false;
+    }
+    // 2. 验证门票对应的user会话是否存在
+    String userRedis = redisOperator.get(REDIS_USER_TOKEN + ":" + userId);
+    return !StringUtils.isBlank(userRedis);
   }
 }

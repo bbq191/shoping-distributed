@@ -13,7 +13,7 @@ public class Items {
   @Field(store = true, type = FieldType.Text, index = false)
   private String itemId;
 
-  @Field(store = true, type = FieldType.Text, index = true)
+  @Field(store = true, type = FieldType.Text)
   private String itemName;
 
   @Field(store = true, type = FieldType.Text, index = false)

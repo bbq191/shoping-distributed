@@ -34,6 +34,9 @@ spring:
     multipart:
       max-file-size: 512000     # 文件上传大小限制为500kb
       max-request-size: 512000  # 请求大小限制为500kb
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher # 解决 swagger 报错 'documentationPluginsBootstrapper'; nested exception is java.lang.NullPointerException
 ############################################################
 #mybatis配置
 ############################################################

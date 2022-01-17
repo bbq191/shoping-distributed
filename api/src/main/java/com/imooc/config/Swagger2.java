@@ -9,10 +9,9 @@ import springfox.documentation.service.ApiInfo;
 import springfox.documentation.service.Contact;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
+/** @author afu */
 @Configuration
-@EnableSwagger2
 public class Swagger2 {
   private ApiInfo apiInfo() {
     return new ApiInfoBuilder()
@@ -26,7 +25,7 @@ public class Swagger2 {
 
   @Bean
   public Docket createRestestApi() {
-    return new Docket(DocumentationType.SWAGGER_2)
+    return new Docket(DocumentationType.OAS_30)
         .apiInfo(apiInfo()) // 用于定义api文档汇总信息
         .select()
         .apis(RequestHandlerSelectors.basePackage("com.imooc.controller")) // 指定controller包

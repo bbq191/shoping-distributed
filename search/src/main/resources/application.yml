@@ -1,0 +1,16 @@
+server:
+  port: 8033
+
+spring:
+  datasource: # 数据源的相关配置
+    type: com.zaxxer.hikari.HikariDataSource          # 数据源类型：HikariCP
+    driver-class-name: com.mysql.cj.jdbc.Driver    #mysql驱动
+    url: jdbc:mysql://localhost:3306/shopping-dev?useUnicode=true&characterEncoding=UTF-8&autoReconnect=TRUE
+    username: afu
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher # 解决 swagger 报错 'documentationPluginsBootstrapper'; nested exception is java.lang.NullPointerException
+  elasticsearch:
+    uris: localhost:9200
+#      cluster-nodes: localhost:9300
+#      cluster-name: elasticsearch_afu

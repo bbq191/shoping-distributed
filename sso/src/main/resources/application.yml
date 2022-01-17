@@ -40,6 +40,9 @@ spring:
     prefix: classpath:/templates/
     suffix: .html
     encoding: utf-8
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher # 解决 swagger 报错 'documentationPluginsBootstrapper'; nested exception is java.lang.NullPointerException
 ############################################################
 #mybatis配置
 ############################################################

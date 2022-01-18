@@ -16,6 +16,7 @@
     <module>api</module>
     <module>sso</module>
     <module>search</module>
+    <module>fastfds</module>
   </modules>
 
   <parent>

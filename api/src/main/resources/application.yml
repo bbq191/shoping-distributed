@@ -56,6 +56,7 @@ mapper:
 pagehelper:
   helperDialect: mysql
   supportMethodsArguments: true
+  params: count=countSql
 ############################################################
 #web访问端口号 约定：8088
 ############################################################

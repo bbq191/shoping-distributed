@@ -1,0 +1,5 @@
+- [x] cookies 处理
+- [x] redis 处理分布式 id
+- [x] 分布式 session 处理
+- [x] 分布式购物车
+- [x] fastfds 集成

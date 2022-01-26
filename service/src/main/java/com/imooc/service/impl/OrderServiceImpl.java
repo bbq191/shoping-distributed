@@ -72,6 +72,12 @@ public class OrderServiceImpl implements OrderService {
     newOrder.setCreatedTime(new Date());
     newOrder.setUpdatedTime(new Date());
 
+    // mycat 分库分表以后需要先插主表，因为子表需要先定位到实际的分片物理表
+    // 金额不能为空，需要先预占
+    newOrder.setTotalAmount(0);
+    newOrder.setRealPayAmount(0);
+    ordersMapper.insert(newOrder);
+
     // 2. 循环根据itemSpecIds保存订单商品信息表
     String[] itemSpecIdArr = itemSpecIds.split(",");
     // 商品原价累计
@@ -111,11 +117,12 @@ public class OrderServiceImpl implements OrderService {
       // 2.4 在用户提交订单以后，规格表中需要扣除库存
       itemService.decreaseItemSpecStock(itemSpecId, buyCounts);
     }
-
     newOrder.setTotalAmount(totalAmount);
     newOrder.setRealPayAmount(realPayAmount);
-    ordersMapper.insert(newOrder);
-
+    // 分库分表以后，分片列 user_id 不能被更新
+    newOrder.setUserId(null);
+    // updateByPrimaryKeySelective 中空字段就不会写入到 update 语句中
+    ordersMapper.updateByPrimaryKeySelective(newOrder);
     // 3. 保存订单状态表
     OrderStatus waitPayOrderStatus = new OrderStatus();
     waitPayOrderStatus.setOrderId(orderId);

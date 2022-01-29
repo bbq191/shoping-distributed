@@ -16,9 +16,15 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import org.apache.commons.lang3.StringUtils;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +50,7 @@ public class OrdersController extends BaseController {
   @Autowired private OrderService orderService;
   @Autowired private RestTemplate restTemplate;
   @Autowired private RedisOperator redisOperator;
+  @Resource private RedissonClient redissonClient;
 
   @ApiOperation(value = "用户下单", notes = "用户下单", httpMethod = "POST")
   @PostMapping("/create")
@@ -51,6 +58,25 @@ public class OrdersController extends BaseController {
       @RequestBody SubmitOrderBo submitOrderBo,
       HttpServletRequest request,
       HttpServletResponse response) {
+    String orderTokenKey = "ORDER_TOKEN_" + request.getSession().getId();
+    String lockKey = "LOCK_KEY_" + request.getSession().getId();
+    // 解决并发请求进入同时下单成功，保证只有一个请求能拿到锁
+    RLock lock = redissonClient.getLock(lockKey);
+    lock.lock(5, TimeUnit.SECONDS);
+    // 幂等性控制
+    try {
+      String orderToken = redisOperator.get(orderTokenKey);
+      if (StringUtils.isBlank(orderToken)) {
+        throw new RuntimeException("oreder token 不存在");
+      }
+      boolean corretToken = orderToken.equals(submitOrderBo.getToken());
+      if (!corretToken) {
+        throw new RuntimeException("order toekn 不正确");
+      }
+      redisOperator.del(orderTokenKey);
+    } finally {
+      lock.unlock();
+    }
 
     if (!submitOrderBo.getPayMethod().equals(PayMethod.WEIXIN.type)
         && !submitOrderBo.getPayMethod().equals(PayMethod.ALIPAY.type)) {
@@ -65,6 +91,7 @@ public class OrdersController extends BaseController {
     OrderVo orderVo = orderService.createOrder(shopcartList, submitOrderBo);
     // 2. 创建订单以后，移除购物车中已结算（已提交）的商品
     // 1001 2002 -> 用户购买 3003 -> 用户购买 4004
+    assert shopcartList != null;
     shopcartList.removeAll(orderVo.getToBeRemovedShopcatdList());
     redisOperator.set(
         FOODIE_SHOPCART + ":" + submitOrderBo.getUserId(), JsonUtils.objectToJson(shopcartList));
@@ -105,5 +132,13 @@ public class OrdersController extends BaseController {
 
     OrderStatus orderStatus = orderService.queryOrderStatusInfo(orderId);
     return IMOOCJSONResult.ok(orderStatus);
+  }
+
+  @ApiOperation(value = "获取订单 Token", notes = "获取订单 Token", httpMethod = "POST")
+  @PostMapping("/getOrderToken")
+  public IMOOCJSONResult getOrderToken(HttpSession session) {
+    String token = UUID.randomUUID().toString();
+    redisOperator.set("ORDER_TOKEN_" + session.getId(), token, 600);
+    return IMOOCJSONResult.ok();
   }
 }
